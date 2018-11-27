@@ -1,5 +1,12 @@
-// # include all the Open GL headers
+#include "glitter.hpp" // # include all the Open GL headers
 #include "shader.h"
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <iostream>
+#include <map>
+#include <vector>
+using namespace std;
 
 struct Vertex
 {

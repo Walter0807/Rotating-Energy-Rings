@@ -1,3 +1,7 @@
+#pragma once
+//#ifndef SHADER_H
+//#define SHADER_H
+
 #include <string>
 #include <fstream>
 #include <sstream>
