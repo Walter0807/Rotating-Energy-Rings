@@ -32,6 +32,13 @@ using glm::mat4;
 
 Camera* cam;
 
+const int numObj = 5;
+GLuint vbo[numObj];
+GLuint uvbo[numObj];
+GLuint nvbo[numObj];
+GLint texture[numObj];
+GLint light[numObj];
+int drawSize[numObj];
 
 int WIDTH = 1920;
 int HEIGHT = 1080;
