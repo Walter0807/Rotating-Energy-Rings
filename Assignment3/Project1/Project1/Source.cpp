@@ -43,6 +43,7 @@ GLuint vbo[numObj];
 GLuint uvbo[numObj];
 GLuint nvbo[numObj];
 GLint texture[numObj];
+GLint textureEarth[2];
 GLint light[numObj];
 int drawSize[numObj];
 
@@ -505,6 +506,118 @@ void sendDataToOpenGL()
 	glGenBuffers(numObj, uvbo);
 	glGenBuffers(numObj, nvbo);
 
+
+
+	//##################  First Object : spaceCraft #######################
+	std::vector<glm::vec3> vertices1;
+	std::vector<glm::vec2> uvs1;
+	std::vector<glm::vec3> normals1;
+	bool obj1 = loadOBJ("./spaceCraft.obj", vertices1, uvs1, normals1);
+	texture[1] = loadBMP_custom("./spacecraftTexture.bmp"); //default plane texture
+	glBindVertexArray(vao[1]);
+	//send vao of obj0 (plane) to openGL
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+	glBufferData(GL_ARRAY_BUFFER, vertices1.size() * sizeof(glm::vec3), &vertices1[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, uvbo[1]);
+	glBufferData(GL_ARRAY_BUFFER, uvs1.size() * sizeof(glm::vec2), &uvs1[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, nvbo[1]);
+	glBufferData(GL_ARRAY_BUFFER, normals1.size() * sizeof(glm::vec3), &normals1[0], GL_STATIC_DRAW);
+
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+	glVertexAttribPointer(
+		0, // attribute
+		3, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		0, // stride
+		(void*)0 // array buffer offset
+	);
+	drawSize[1] = (int)vertices1.size();
+	glEnableVertexAttribArray(0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, uvbo[1]);
+	glVertexAttribPointer(
+		1, // attribute
+		2, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		0, // stride
+		(void*)0 // array buffer offset
+	);
+	glEnableVertexAttribArray(1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, nvbo[1]);
+	glVertexAttribPointer(
+		2, // attribute
+		3, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		0, // stride
+		(void*)0 // array buffer offset
+	);
+	glEnableVertexAttribArray(2);
+
+	glBindVertexArray(-1);
+
+	//##################  Finished Plane  #######################
+
+	//##################  Second Object : Earth #######################
+	std::vector<glm::vec3> vertices2;
+	std::vector<glm::vec2> uvs2;
+	std::vector<glm::vec3> normals2;
+	bool obj2 = loadOBJ("./planet.obj", vertices2, uvs2, normals2);
+	textureEarth[0] = loadBMP_custom("./earthTexture.bmp"); //default plane texture
+	textureEarth[1] = loadBMP_custom("./earth_normal.bmp");
+	glBindVertexArray(vao[2]);
+	//send vao of obj0 (plane) to openGL
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
+	glBufferData(GL_ARRAY_BUFFER, vertices2.size() * sizeof(glm::vec3), &vertices2[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, uvbo[2]);
+	glBufferData(GL_ARRAY_BUFFER, uvs2.size() * sizeof(glm::vec2), &uvs2[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, nvbo[2]);
+	glBufferData(GL_ARRAY_BUFFER, normals2.size() * sizeof(glm::vec3), &normals2[0], GL_STATIC_DRAW);
+
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
+	glVertexAttribPointer(
+		0, // attribute
+		3, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		0, // stride
+		(void*)0 // array buffer offset
+	);
+	drawSize[2] = (int)vertices2.size();
+	glEnableVertexAttribArray(0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, uvbo[2]);
+	glVertexAttribPointer(
+		1, // attribute
+		2, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		0, // stride
+		(void*)0 // array buffer offset
+	);
+	glEnableVertexAttribArray(1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, nvbo[2]);
+	glVertexAttribPointer(
+		2, // attribute
+		3, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		0, // stride
+		(void*)0 // array buffer offset
+	);
+	glEnableVertexAttribArray(2);
+
+	glBindVertexArray(-1);
+
+	//##################  Finished Plane  #######################
+
+
 	//##################  First Object : Skybox  #######################
 	GLfloat skyboxVertices[] =
 	{
@@ -571,61 +684,6 @@ void sendDataToOpenGL()
 
 	glBindVertexArray(-1); //unbind 
 	//##################  Finished Skybox  #######################
-
-	//##################  Second Object : Plane #######################
-	std::vector<glm::vec3> vertices1;
-	std::vector<glm::vec2> uvs1;
-	std::vector<glm::vec3> normals1;
-	bool obj1 = loadOBJ("./spaceCraft.obj", vertices1, uvs1, normals1);
-	texture[1] = loadBMP_custom("./spacecraftTexture.bmp"); //default plane texture
-	glBindVertexArray(vao[1]);
-	//send vao of obj0 (plane) to openGL
-	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-	glBufferData(GL_ARRAY_BUFFER, vertices1.size() * sizeof(glm::vec3), &vertices1[1], GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, uvbo[1]);
-	glBufferData(GL_ARRAY_BUFFER, uvs1.size() * sizeof(glm::vec2), &uvs1[1], GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, nvbo[1]);
-	glBufferData(GL_ARRAY_BUFFER, normals1.size() * sizeof(glm::vec3), &normals1[1], GL_STATIC_DRAW);
-
-
-	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-	glVertexAttribPointer(
-		0, // attribute
-		3, // size
-		GL_FLOAT, // type
-		GL_FALSE, // normalized?
-		0, // stride
-		(void*)0 // array buffer offset
-	);
-	drawSize[1] = (int)vertices1.size();
-	glEnableVertexAttribArray(0);
-
-	glBindBuffer(GL_ARRAY_BUFFER, uvbo[1]);
-	glVertexAttribPointer(
-		1, // attribute
-		2, // size
-		GL_FLOAT, // type
-		GL_FALSE, // normalized?
-		0, // stride
-		(void*)0 // array buffer offset
-	);
-	glEnableVertexAttribArray(1);
-
-	glBindBuffer(GL_ARRAY_BUFFER, nvbo[1]);
-	glVertexAttribPointer(
-		2, // attribute
-		3, // size
-		GL_FLOAT, // type
-		GL_FALSE, // normalized?
-		0, // stride
-		(void*)0 // array buffer offset
-	);
-	glEnableVertexAttribArray(2);
-
-	glBindVertexArray(-1);
-
-	//##################  Finished Plane  #######################
-
 		
 	//Load texture
 
@@ -706,7 +764,7 @@ void paintGL(void)
 
 
 
-	//****************PAINT SECOND OBJECT spaceCraft*************
+	//****************PAINT FIRST OBJECT spaceCraft*************
 
 	glUseProgram(programID);
 
@@ -749,23 +807,70 @@ void paintGL(void)
 	glUniformMatrix4fv(viewUniformLocation, 1, GL_FALSE, &view[0][0]);
 	glUniformMatrix4fv(projectionUniformLocation, 1, GL_FALSE, &projection[0][0]);
 
-	glDrawArrays(GL_TRIANGLES, 0, drawSize[1]);
+	glDrawArrays(GL_TRIANGLES, 0, drawSize[2]);
 	glBindVertexArray(-1);
 	glBindTexture(GL_TEXTURE_2D, -1);
 	////////******************************************************
+
+	//#################     earth   ###############################
+
+	glBindVertexArray(vao[2]);
+	glm::mat4 modeltranslation2 = glm::mat4(1.0f);
+	modeltranslation2 = glm::translate(glm::mat4(), glm::vec3(0.0f, -5.0f, -128.0f));
+
+	glm::mat4 scaleMatrix2;
+	scaleMatrix2 = glm::scale(glm::mat4(1.0f), glm::vec3(8.3f));  // the last is scallin coefficience
+
+	model = modeltranslation2 * modeltranslation2*scaleMatrix2;
+
+	//model = glm::translate(model, -carPositionDelta);
+
+	//model = glm::rotate(model, (float)(left_press_num - right_press_num), vec3(0, 1, 0));
+
+
+	//model = glm::translate(model, carPositionDelta);
+
+
+	glm::mat4 mvp2 = projection * view * model;
+
+
+	//load and bind texture
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, textureEarth[0]);
+	GLuint TextureID_0 = glGetUniformLocation(programID, "myTextureSampler_0");
+	glUniform1i(TextureID_0, 0);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, textureEarth[1]);
+	GLuint TextureID_1 = glGetUniformLocation(programID, "myTextureSampler_1");
+	glUniform1i(TextureID_1, 1);
+
+
+
+	glUniformMatrix4fv(mvpUniformLocation, 1, GL_FALSE, &mvp2[0][0]);
+	glUniformMatrix4fv(modelUniformLocation, 1, GL_FALSE, &model[0][0]);
+	glUniformMatrix4fv(viewUniformLocation, 1, GL_FALSE, &view[0][0]);
+	glUniformMatrix4fv(projectionUniformLocation, 1, GL_FALSE, &projection[0][0]);
+
+	glDrawArrays(GL_TRIANGLES, 0, drawSize[2]);
+	glBindVertexArray(-1);
+	glBindTexture(GL_TEXTURE_2D, -1);
+
+	//####################finished earth #####################################
 
 
 
 
 	//#################     SKYBOX   ###############################
 	//glDepthMask(GL_FALSE);
+	//glDisable(GL_DEPTH_TEST);
 
 	//glUseProgram(skyboxProgramID);
 
 	//GLuint skb_ModelUniformLocation = glGetUniformLocation(skyboxProgramID, "M");
 	//glm::mat4 skb_modelMatrix = glm::mat4(1.0f);
 	//glm::mat4 scaleMatrix0;
-	//scaleMatrix0 = glm::scale(glm::mat4(1.0f), glm::vec3(2000.0f));  // the last is scalling coefficience
+	//scaleMatrix0 = glm::scale(glm::mat4(1.0f), glm::vec3(3000.0f));  // the last is scalling coefficience
 
 	//glm::mat4 modeltranslationNull;
 	//modeltranslationNull = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, 0.0f));
@@ -780,20 +885,21 @@ void paintGL(void)
 
 	////skybox cube
 	//glBindVertexArray(vao[0]);
-	//glActiveTexture(GL_TEXTURE0);
+	//glActiveTexture(GL_TEXTURE1);
 	//glBindTexture(GL_TEXTURE_CUBE_MAP, texture[0]);
-	//glUniform1i(glGetUniformLocation(skyboxProgramID, "skybox"), 0);
+	//glUniform1i(glGetUniformLocation(skyboxProgramID, "skybox"), 1);
 
 
 	//glDrawArrays(GL_TRIANGLES, 0, 36);
 	//glBindVertexArray(-1);
+	//glEnable(GL_DEPTH_TEST);
 	//glEnable(GL_CULL_FACE);
 	//glDepthMask(GL_TRUE);
 	//#################FINISHED  SKYBOX###############################
 
 	counter++;
 	if (counter % 100 == 0) {
-		cout << "camera position: " << cam.Position.x << "," << cam.Position.y << "," << cam.Position.z << endl;
+		cout << "camera front: " << cam.Front.x << "," << cam.Front.y << "," << cam.Front.z << endl;
 	}
 
 
