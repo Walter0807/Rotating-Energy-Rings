@@ -22,17 +22,23 @@ Student Name: Wentao Zhu
 #include <vector>
 #include "camera.h"
 
+#include <string>
+
+
 GLuint loadBMP_custom(const char * imagepath);
 unsigned char* loadBMP_data(const GLchar* imagepath, int* width, int* height);
-unsigned int loadCubemap(vector<const GLchar*> faces);
+//unsigned int loadCubemap(vector<const GLchar*> faces);
 
 using namespace std;
 using glm::vec3;
 using glm::mat4;
 
-Camera* cam;
+bool firstMouse = true;
+
+Camera cam = Camera(glm::vec3(0.0f, 0.0f, 0.0f));
 
 const int numObj = 5;
+GLuint vao[numObj];
 GLuint vbo[numObj];
 GLuint uvbo[numObj];
 GLuint nvbo[numObj];
@@ -40,8 +46,35 @@ GLint texture[numObj];
 GLint light[numObj];
 int drawSize[numObj];
 
+float diffAdjust = 0.1;
+float ambAdjust = 0.0;
+float specAdjust = 0.1;
+
+float specularStrength = 0.5;
+
+int smoothCounter = 0;
+
+GLfloat deltaTime = 0.0f;
+GLfloat lastFrame = 0.0f;
+
 int WIDTH = 1920;
 int HEIGHT = 1080;
+int counter = 0;
+
+//keyboard control
+int up_down_press_num = 0;
+int left_right_press_num = 0;
+
+vec3 spaceCraftForward;
+
+GLfloat deltaFrame = 5;
+
+//mouse control
+int lastX = 0;
+int lastY = 0;
+int xpos = 0;
+int ypos = 0;
+
 
 GLint programID;
 GLint skyboxProgramID;
@@ -195,11 +228,54 @@ void keyboard(unsigned char key, int x, int y)
 void move(int key, int x, int y)
 {
 	//TODO: Use arrow keys to do interactive events and animation
+	switch (key) {
+	case GLUT_KEY_LEFT:
+		//left_right_press_num -= 0.05;
+		cam.ProcessKeyboard(LEFT, deltaFrame);
+		cout << "left" << endl;
+
+		break;
+	case GLUT_KEY_RIGHT:
+		//left_right_press_num += 0.05;
+		cam.ProcessKeyboard(RIGHT, deltaFrame);
+		cout << "right" << endl;
+		break;
+	case GLUT_KEY_DOWN:
+
+		//spaceCraftForward = normalize((spaceCraftForward * cos(cam.Pitch)) + vec3(1, 0, 0) * sin(cam.Pitch));
+		//carForward = normalize((carForward * cos(carPitch)) + vec3(1, 0, 0) * sin(carPitch));
+		//cam.Position += (float)1.5*spaceCraftForward;
+		cam.ProcessKeyboard(BACKWARD, deltaFrame);
+		cout << "down" << endl;
+		break;
+	case GLUT_KEY_UP:
+
+		//spaceCraftForward = normalize((spaceCraftForward * cos(cam.Pitch)) + vec3(1, 0, 0) * sin(cam.Pitch));
+		//carForward = normalize((carForward * cos(carPitch)) + vec3(1, 0, 0) * sin(carPitch));
+		//cam.Position -= (float)1.5*spaceCraftForward;
+		cam.ProcessKeyboard(FORWARD, deltaFrame);
+		cout << "up" << endl;
+		break;
+
+	}
 }
 
-void PassiveMouse(int x, int y)
+void PassiveMouse(int xpos, int ypos)
 {
 	//TODO: Use Mouse to do interactive events and animation
+	if (firstMouse)
+	{
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
+	}
+
+	GLfloat xoffset = xpos - lastX;
+	GLfloat yoffset = lastY - ypos; 
+	lastX = xpos;
+	//lastY = ypos;
+
+	cam.ProcessMouseMovement(xoffset, 0);
 
 }
 
@@ -288,7 +364,6 @@ bool loadOBJ(const char * path,std::vector<glm::vec3> & out_vertices,std::vector
 		out_normals.push_back(normal);
 
 	}
-
 	return true;
 }
 GLuint loadBMP_custom(const char * imagepath) {
@@ -424,23 +499,302 @@ void sendDataToOpenGL()
 {
 	//TODO:
 	//Load objects and bind to VAO & VBO
+	//To create vao buffers and 3 vbo buffers for each object. 3 indicates we have 3 objects for now.
+	glGenVertexArrays(numObj, vao);
+	glGenBuffers(numObj, vbo);
+	glGenBuffers(numObj, uvbo);
+	glGenBuffers(numObj, nvbo);
+
+	//##################  First Object : Skybox  #######################
+	GLfloat skyboxVertices[] =
+	{
+		//left
+		-1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+		//back
+		-1.0f,  1.0f, -1.0f,
+		-1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+		1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		//front
+		-1.0f, -1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+		//right
+		1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+		//bottom
+		-1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		1.0f, -1.0f,  1.0f,
+		//up
+		-1.0f,  1.0f, -1.0f,
+		1.0f,  1.0f, -1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f, -1.0f
+	};
+
+	vector<const GLchar*> faces;
+	faces.push_back("./skybox/purplenebula_rt.bmp");
+	faces.push_back("./skybox/purplenebula_lf.bmp");
+	faces.push_back("./skybox/purplenebula_up.bmp");
+	faces.push_back("./skybox/purplenebula_dn.bmp");
+	faces.push_back("./skybox/purplenebula_ft.bmp");
+	faces.push_back("./skybox/purplenebula_bk.bmp");
+
+
+
+	texture[0] = loadCubemap(faces);
+	glBindVertexArray(vao[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+
+	glBindVertexArray(-1); //unbind 
+	//##################  Finished Skybox  #######################
+
+	//##################  Second Object : Plane #######################
+	std::vector<glm::vec3> vertices1;
+	std::vector<glm::vec2> uvs1;
+	std::vector<glm::vec3> normals1;
+	bool obj1 = loadOBJ("./spaceCraft.obj", vertices1, uvs1, normals1);
+	texture[1] = loadBMP_custom("./spacecraftTexture.bmp"); //default plane texture
+	glBindVertexArray(vao[1]);
+	//send vao of obj0 (plane) to openGL
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+	glBufferData(GL_ARRAY_BUFFER, vertices1.size() * sizeof(glm::vec3), &vertices1[1], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, uvbo[1]);
+	glBufferData(GL_ARRAY_BUFFER, uvs1.size() * sizeof(glm::vec2), &uvs1[1], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, nvbo[1]);
+	glBufferData(GL_ARRAY_BUFFER, normals1.size() * sizeof(glm::vec3), &normals1[1], GL_STATIC_DRAW);
+
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+	glVertexAttribPointer(
+		0, // attribute
+		3, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		0, // stride
+		(void*)0 // array buffer offset
+	);
+	drawSize[1] = (int)vertices1.size();
+	glEnableVertexAttribArray(0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, uvbo[1]);
+	glVertexAttribPointer(
+		1, // attribute
+		2, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		0, // stride
+		(void*)0 // array buffer offset
+	);
+	glEnableVertexAttribArray(1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, nvbo[1]);
+	glVertexAttribPointer(
+		2, // attribute
+		3, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		0, // stride
+		(void*)0 // array buffer offset
+	);
+	glEnableVertexAttribArray(2);
+
+	glBindVertexArray(-1);
+
+	//##################  Finished Plane  #######################
+
+		
 	//Load texture
 
 
 }
 
 void paintGL(void)
-{
+{	
+
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	//TODO:
 	//Set lighting information, such as position and color of lighting source
 	//Set transformation matrix
 	//Bind different textures
 	
+	//different objects have different model matrix
+	glm::mat4 model;   //for rotation
+	glm::mat4 view;    //for translation
+	glm::mat4 projection;
+
+
+	projection = glm::perspective(cam.Zoom, (float)WIDTH / (float)HEIGHT, 0.1f, 4000.0f);
+	view = cam.GetViewMatrix();
+
+	//********************* GIVE ME LIGHT! ********************************
+	//eyePosition
+	GLint eyePositionUniformLocation = glGetUniformLocation(programID, "eyePositionWorld");
+	//vec3 eyePosition(1.0f, 1.0f, 5.0f);
+	vec3 eyePositionWorld = cam.Position;
+	glUniform3fv(eyePositionUniformLocation, 1, &eyePositionWorld[0]);
+
+	// ambientLight
+	GLint ambientLightUniformLocation = glGetUniformLocation(programID, "ambientLight");
+	float tempAmpAdjust = ambAdjust + 0.8;
+	if (tempAmpAdjust <= 0) { tempAmpAdjust = 0.0; }
+	vec3 ambientLight(tempAmpAdjust, tempAmpAdjust, tempAmpAdjust);  // RGB light of ambient light
+	glUniform3fv(ambientLightUniformLocation, 1, &ambientLight[0]);
+
+	//single light source
+	GLint lightPositionUniformLocation = glGetUniformLocation(programID, "lightPositionWorld");
+	//vec3 lightPositionWorld(2.0f, 2.0f, 20.0f);
+	vec3 lightPositionWorld = vec3(20.0, -20.0, 20.0);
+	glUniform3fv(lightPositionUniformLocation, 1, &lightPositionWorld[0]);
+
+
+
+	//diffuse
+	GLint diffuseStrengthUniformLocation = glGetUniformLocation(programID, "diffuseStrength");
+	if (diffAdjust <= 0) { diffAdjust = 0.0; }
+	vec3 diffuseStrength(diffAdjust, diffAdjust, diffAdjust);  // RGB light of ambient light
+	glUniform3fv(diffuseStrengthUniformLocation, 1, &diffuseStrength[0]);
+
+	//pass specular strength to the shader
+	GLint specularStrengthUniformLocation = glGetUniformLocation(programID, "specularStrength");
+	if (specAdjust <= 0) { specAdjust = 0.0; }
+	vec3 specularStrength(specAdjust, specAdjust + 0.1, specAdjust);  // RGB light of ambient light
+	glUniform3fv(specularStrengthUniformLocation, 1, &specularStrength[0]);
+
+
+	//specular light
+
+	//****************************FINISHED LIGHTING*******************************
+
+
+	//#############some general settings####################
+	glClearColor(0.1f, 0.1f, 0.13f, 0.9f); // set the background color
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	//TODO:
+	//Set lighting information, such as position and color of lighting source
+	//Set transformation matrix
+	//Bind different textures
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
+
+	glViewport(0, 0, WIDTH, HEIGHT);
 
 
 
 
+	//****************PAINT SECOND OBJECT spaceCraft*************
+
+	glUseProgram(programID);
+
+	GLuint modelUniformLocation = glGetUniformLocation(programID, "model");
+	GLuint viewUniformLocation = glGetUniformLocation(programID, "view");
+	GLuint projectionUniformLocation = glGetUniformLocation(programID, "projection");
+	GLuint mvpUniformLocation = glGetUniformLocation(programID, "MVP");
+
+
+
+	glBindVertexArray(vao[1]);
+
+	glm::mat4 modeltranslation1 = glm::mat4(1.0f);
+	glm::mat4 modelTranslateRelativeToCamera = glm::mat4(1.0f);
+	modelTranslateRelativeToCamera = glm::translate(glm::mat4(), cam.Position);
+	GLfloat step = 10;
+	modeltranslation1 = glm::translate(modelTranslateRelativeToCamera, glm::vec3(0.0f, -5.0f, 0.0f) + step*cam.Front);
+
+
+	glm::mat4 scaleMatrix1;
+	scaleMatrix1 = glm::scale(glm::mat4(1.0f), glm::vec3(0.008f));  // the last is scallin coefficience
+
+	glm::mat4 rotateMatrix1;
+	rotateMatrix1 = glm::rotate(glm::mat4(1.0f), glm::radians(-cam.Yaw + 90), vec3(0, 1, 0));
+
+	model =  modeltranslation1*scaleMatrix1*rotateMatrix1;
+
+
+	glm::mat4 mvp1 = projection * view * model;
+
+
+	//load and bind texture
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture[1]);
+	glUniform1i(glGetUniformLocation(programID, "texture0"), 0);
+
+
+	glUniformMatrix4fv(mvpUniformLocation, 1, GL_FALSE, &mvp1[0][0]);
+	glUniformMatrix4fv(modelUniformLocation, 1, GL_FALSE, &model[0][0]);
+	glUniformMatrix4fv(viewUniformLocation, 1, GL_FALSE, &view[0][0]);
+	glUniformMatrix4fv(projectionUniformLocation, 1, GL_FALSE, &projection[0][0]);
+
+	glDrawArrays(GL_TRIANGLES, 0, drawSize[1]);
+	glBindVertexArray(-1);
+	glBindTexture(GL_TEXTURE_2D, -1);
+	////////******************************************************
+
+
+
+
+	//#################     SKYBOX   ###############################
+	//glDepthMask(GL_FALSE);
+
+	//glUseProgram(skyboxProgramID);
+
+	//GLuint skb_ModelUniformLocation = glGetUniformLocation(skyboxProgramID, "M");
+	//glm::mat4 skb_modelMatrix = glm::mat4(1.0f);
+	//glm::mat4 scaleMatrix0;
+	//scaleMatrix0 = glm::scale(glm::mat4(1.0f), glm::vec3(2000.0f));  // the last is scalling coefficience
+
+	//glm::mat4 modeltranslationNull;
+	//modeltranslationNull = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, 0.0f));
+
+	//skb_modelMatrix = skb_modelMatrix * scaleMatrix0 * modeltranslationNull ;
+
+	////remove any translation component of the view matrix
+	//view = glm::mat4(glm::mat3(view));
+	//glUniformMatrix4fv(skb_ModelUniformLocation, 1, GL_FALSE, &skb_modelMatrix[0][0]);
+	//glUniformMatrix4fv(glGetUniformLocation(skyboxProgramID, "view"), 1, GL_FALSE, &view[0][0]);
+	//glUniformMatrix4fv(glGetUniformLocation(skyboxProgramID, "projection"), 1, GL_FALSE, &projection[0][0]);
+
+	////skybox cube
+	//glBindVertexArray(vao[0]);
+	//glActiveTexture(GL_TEXTURE0);
+	//glBindTexture(GL_TEXTURE_CUBE_MAP, texture[0]);
+	//glUniform1i(glGetUniformLocation(skyboxProgramID, "skybox"), 0);
+
+
+	//glDrawArrays(GL_TRIANGLES, 0, 36);
+	//glBindVertexArray(-1);
+	//glEnable(GL_CULL_FACE);
+	//glDepthMask(GL_TRUE);
+	//#################FINISHED  SKYBOX###############################
+
+	counter++;
+	if (counter % 100 == 0) {
+		cout << "camera position: " << cam.Position.x << "," << cam.Position.y << "," << cam.Position.z << endl;
+	}
 
 
 
@@ -452,6 +806,7 @@ void initializedGL(void) //run only once
 {
 	glewInit();
 	installShaders();
+	installSkyboxShaders();
 	sendDataToOpenGL();
 }
 
