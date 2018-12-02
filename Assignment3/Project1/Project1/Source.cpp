@@ -3,7 +3,7 @@ FILE : main.cpp (csci3260 2018-2019 Project)
 *********************************************************/
 /*********************************************************
 Student Information
-Student ID: 1155123906	
+Student ID: 1155123906
 Student Name: Zuowen Wang
 
 Student ID: 1155123308
@@ -37,7 +37,7 @@ bool firstMouse = true;
 
 Camera cam = Camera(glm::vec3(0.0f, 0.0f, 0.0f));
 
-const int numObj = 5;
+const int numObj = 6;
 GLuint vao[numObj];
 GLuint vbo[numObj];
 GLuint uvbo[numObj];
@@ -63,8 +63,7 @@ int HEIGHT = 1080;
 int counter = 0;
 
 //keyboard control
-int up_down_press_num = 0;
-int left_right_press_num = 0;
+int cam_up = 0;
 
 vec3 spaceCraftForward;
 
@@ -223,7 +222,25 @@ void installSkyboxShaders()
 void keyboard(unsigned char key, int x, int y)
 {
 	//TODO: Use keyboard to do interactive events and animation
-
+	switch (key) {
+	case '+':
+		ambAdjust += 0.1;
+		break;
+	case '-':
+		ambAdjust -= 0.1;
+		break;
+	case 'u':
+		cam.Position.y++;
+		break;
+	case 'p':
+		cam.Position.y--;
+		break;
+	case '2':
+		specAdjust += 0.1;
+		break;
+	case '1':
+		specAdjust -= 0.1;
+	}
 }
 
 void move(int key, int x, int y)
@@ -242,18 +259,10 @@ void move(int key, int x, int y)
 		cout << "right" << endl;
 		break;
 	case GLUT_KEY_DOWN:
-
-		//spaceCraftForward = normalize((spaceCraftForward * cos(cam.Pitch)) + vec3(1, 0, 0) * sin(cam.Pitch));
-		//carForward = normalize((carForward * cos(carPitch)) + vec3(1, 0, 0) * sin(carPitch));
-		//cam.Position += (float)1.5*spaceCraftForward;
 		cam.ProcessKeyboard(BACKWARD, deltaFrame);
 		cout << "down" << endl;
 		break;
 	case GLUT_KEY_UP:
-
-		//spaceCraftForward = normalize((spaceCraftForward * cos(cam.Pitch)) + vec3(1, 0, 0) * sin(cam.Pitch));
-		//carForward = normalize((carForward * cos(carPitch)) + vec3(1, 0, 0) * sin(carPitch));
-		//cam.Position -= (float)1.5*spaceCraftForward;
 		cam.ProcessKeyboard(FORWARD, deltaFrame);
 		cout << "up" << endl;
 		break;
@@ -272,7 +281,7 @@ void PassiveMouse(int xpos, int ypos)
 	}
 
 	GLfloat xoffset = xpos - lastX;
-	GLfloat yoffset = lastY - ypos; 
+	GLfloat yoffset = lastY - ypos;
 	lastX = xpos;
 	//lastY = ypos;
 
@@ -280,7 +289,7 @@ void PassiveMouse(int xpos, int ypos)
 
 }
 
-bool loadOBJ(const char * path,std::vector<glm::vec3> & out_vertices,std::vector<glm::vec2> & out_uvs,std::vector<glm::vec3> & out_normals) {
+bool loadOBJ(const char * path, std::vector<glm::vec3> & out_vertices, std::vector<glm::vec2> & out_uvs, std::vector<glm::vec3> & out_normals) {
 	printf("Loading OBJ file %s...\n", path);
 
 	std::vector<unsigned int> vertexIndices, uvIndices, normalIndices;
@@ -675,30 +684,29 @@ void sendDataToOpenGL()
 
 
 
-	texture[0] = loadCubemap(faces);
-	glBindVertexArray(vao[0]);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+	texture[5] = loadCubemap(faces);
+	glBindVertexArray(vao[5]);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[5]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
 
 	glBindVertexArray(-1); //unbind 
-	//##################  Finished Skybox  #######################
-		
-	//Load texture
+						   //##################  Finished Skybox  #######################
+
+						   //Load texture
 
 
 }
 
 void paintGL(void)
-{	
-
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+{
+	glUseProgram(programID);
 	//TODO:
 	//Set lighting information, such as position and color of lighting source
 	//Set transformation matrix
 	//Bind different textures
-	
+
 	//different objects have different model matrix
 	glm::mat4 model;   //for rotation
 	glm::mat4 view;    //for translation
@@ -711,7 +719,6 @@ void paintGL(void)
 	//********************* GIVE ME LIGHT! ********************************
 	//eyePosition
 	GLint eyePositionUniformLocation = glGetUniformLocation(programID, "eyePositionWorld");
-	//vec3 eyePosition(1.0f, 1.0f, 5.0f);
 	vec3 eyePositionWorld = cam.Position;
 	glUniform3fv(eyePositionUniformLocation, 1, &eyePositionWorld[0]);
 
@@ -724,8 +731,7 @@ void paintGL(void)
 
 	//single light source
 	GLint lightPositionUniformLocation = glGetUniformLocation(programID, "lightPositionWorld");
-	//vec3 lightPositionWorld(2.0f, 2.0f, 20.0f);
-	vec3 lightPositionWorld = vec3(20.0, -20.0, 20.0);
+	vec3 lightPositionWorld = vec3(0.0f, 10.0f, -110.0f);
 	glUniform3fv(lightPositionUniformLocation, 1, &lightPositionWorld[0]);
 
 
@@ -739,7 +745,8 @@ void paintGL(void)
 	//pass specular strength to the shader
 	GLint specularStrengthUniformLocation = glGetUniformLocation(programID, "specularStrength");
 	if (specAdjust <= 0) { specAdjust = 0.0; }
-	vec3 specularStrength(specAdjust, specAdjust + 0.1, specAdjust);  // RGB light of ambient light
+	vec3 specularStrength(specAdjust + 0.1, specAdjust, specAdjust);  // RGB light of ambient light
+	cout << "specAdjust " << specAdjust << endl;
 	glUniform3fv(specularStrengthUniformLocation, 1, &specularStrength[0]);
 
 
@@ -766,7 +773,7 @@ void paintGL(void)
 
 	//****************PAINT FIRST OBJECT spaceCraft*************
 
-	glUseProgram(programID);
+
 
 	GLuint modelUniformLocation = glGetUniformLocation(programID, "model");
 	GLuint viewUniformLocation = glGetUniformLocation(programID, "view");
@@ -781,7 +788,7 @@ void paintGL(void)
 	glm::mat4 modelTranslateRelativeToCamera = glm::mat4(1.0f);
 	modelTranslateRelativeToCamera = glm::translate(glm::mat4(), cam.Position);
 	GLfloat step = 10;
-	modeltranslation1 = glm::translate(modelTranslateRelativeToCamera, glm::vec3(0.0f, -5.0f, 0.0f) + step*cam.Front);
+	modeltranslation1 = glm::translate(modelTranslateRelativeToCamera, glm::vec3(0.0f, -5.0f, 0.0f) + step * cam.Front);
 
 
 	glm::mat4 scaleMatrix1;
@@ -790,7 +797,7 @@ void paintGL(void)
 	glm::mat4 rotateMatrix1;
 	rotateMatrix1 = glm::rotate(glm::mat4(1.0f), glm::radians(-cam.Yaw + 90), vec3(0, 1, 0));
 
-	model =  modeltranslation1*scaleMatrix1*rotateMatrix1;
+	model = modeltranslation1 * scaleMatrix1*rotateMatrix1;
 
 
 	glm::mat4 mvp1 = projection * view * model;
@@ -807,12 +814,17 @@ void paintGL(void)
 	glUniformMatrix4fv(viewUniformLocation, 1, GL_FALSE, &view[0][0]);
 	glUniformMatrix4fv(projectionUniformLocation, 1, GL_FALSE, &projection[0][0]);
 
-	glDrawArrays(GL_TRIANGLES, 0, drawSize[2]);
+	glDrawArrays(GL_TRIANGLES, 0, drawSize[1]);
 	glBindVertexArray(-1);
 	glBindTexture(GL_TEXTURE_2D, -1);
 	////////******************************************************
 
-	//#################     earth   ###############################
+	//#################     Paint earth   ###############################
+	GLint normalFlagUniformLocation = glGetUniformLocation(programID, "normalMapping_flag");
+	bool normalFlag = true;
+	glUniform1i(ambientLightUniformLocation, normalFlag);
+
+
 
 	glBindVertexArray(vao[2]);
 	glm::mat4 modeltranslation2 = glm::mat4(1.0f);
@@ -822,13 +834,6 @@ void paintGL(void)
 	scaleMatrix2 = glm::scale(glm::mat4(1.0f), glm::vec3(8.3f));  // the last is scallin coefficience
 
 	model = modeltranslation2 * modeltranslation2*scaleMatrix2;
-
-	//model = glm::translate(model, -carPositionDelta);
-
-	//model = glm::rotate(model, (float)(left_press_num - right_press_num), vec3(0, 1, 0));
-
-
-	//model = glm::translate(model, carPositionDelta);
 
 
 	glm::mat4 mvp2 = projection * view * model;
@@ -845,6 +850,8 @@ void paintGL(void)
 	GLuint TextureID_1 = glGetUniformLocation(programID, "myTextureSampler_1");
 	glUniform1i(TextureID_1, 1);
 
+	
+
 
 
 	glUniformMatrix4fv(mvpUniformLocation, 1, GL_FALSE, &mvp2[0][0]);
@@ -856,46 +863,51 @@ void paintGL(void)
 	glBindVertexArray(-1);
 	glBindTexture(GL_TEXTURE_2D, -1);
 
+	normalFlag = false;
+	glUniform1i(ambientLightUniformLocation, normalFlag);
+
 	//####################finished earth #####################################
 
 
 
 
 	//#################     SKYBOX   ###############################
-	//glDepthMask(GL_FALSE);
 	//glDisable(GL_DEPTH_TEST);
+	glDepthMask(GL_FALSE);
 
-	//glUseProgram(skyboxProgramID);
 
-	//GLuint skb_ModelUniformLocation = glGetUniformLocation(skyboxProgramID, "M");
-	//glm::mat4 skb_modelMatrix = glm::mat4(1.0f);
-	//glm::mat4 scaleMatrix0;
-	//scaleMatrix0 = glm::scale(glm::mat4(1.0f), glm::vec3(3000.0f));  // the last is scalling coefficience
+	glUseProgram(skyboxProgramID);
 
-	//glm::mat4 modeltranslationNull;
-	//modeltranslationNull = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, 0.0f));
+	GLuint skb_ModelUniformLocation = glGetUniformLocation(skyboxProgramID, "M");
+	glm::mat4 skb_modelMatrix = glm::mat4(1.0f);
+	glm::mat4 scaleMatrix0;
+	scaleMatrix0 = glm::scale(glm::mat4(1.0f), glm::vec3(2000.0f));  // the last is scalling coefficience
 
-	//skb_modelMatrix = skb_modelMatrix * scaleMatrix0 * modeltranslationNull ;
+	glm::mat4 modeltranslationNull;
+	modeltranslationNull = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, 0.0f));
 
-	////remove any translation component of the view matrix
+	skb_modelMatrix = skb_modelMatrix * scaleMatrix0 * modeltranslationNull ;
+
+	//remove any translation component of the view matrix
 	//view = glm::mat4(glm::mat3(view));
-	//glUniformMatrix4fv(skb_ModelUniformLocation, 1, GL_FALSE, &skb_modelMatrix[0][0]);
-	//glUniformMatrix4fv(glGetUniformLocation(skyboxProgramID, "view"), 1, GL_FALSE, &view[0][0]);
-	//glUniformMatrix4fv(glGetUniformLocation(skyboxProgramID, "projection"), 1, GL_FALSE, &projection[0][0]);
+	glUniformMatrix4fv(skb_ModelUniformLocation, 1, GL_FALSE, &skb_modelMatrix[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(skyboxProgramID, "view"), 1, GL_FALSE, &view[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(skyboxProgramID, "projection"), 1, GL_FALSE, &projection[0][0]);
 
-	////skybox cube
-	//glBindVertexArray(vao[0]);
-	//glActiveTexture(GL_TEXTURE1);
-	//glBindTexture(GL_TEXTURE_CUBE_MAP, texture[0]);
-	//glUniform1i(glGetUniformLocation(skyboxProgramID, "skybox"), 1);
+	//skybox cube
+	glBindVertexArray(vao[5]);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, texture[5]);
+	glUniform1i(glGetUniformLocation(skyboxProgramID, "skybox"), 0);
 
 
-	//glDrawArrays(GL_TRIANGLES, 0, 36);
-	//glBindVertexArray(-1);
-	//glEnable(GL_DEPTH_TEST);
-	//glEnable(GL_CULL_FACE);
-	//glDepthMask(GL_TRUE);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+	glBindVertexArray(-1);
+	glEnable(GL_CULL_FACE);
+	glDepthMask(GL_TRUE);
 	//#################FINISHED  SKYBOX###############################
+
+	glUseProgram(programID);
 
 	counter++;
 	if (counter % 100 == 0) {
@@ -921,7 +933,7 @@ int main(int argc, char *argv[])
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGB | GLUT_SINGLE);
 	glutInitWindowSize(WIDTH, HEIGHT);
-	glutCreateWindow("Assignment 2. openGL is so difficult");
+	glutCreateWindow("Course Project. openGL is so difficult");
 
 
 	//TODO:
@@ -941,4 +953,3 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
-
