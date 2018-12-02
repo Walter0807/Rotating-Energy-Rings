@@ -515,7 +515,59 @@ void sendDataToOpenGL()
 	glGenBuffers(numObj, uvbo);
 	glGenBuffers(numObj, nvbo);
 
+	//##################  Zeroth Object : Wonderplanet #######################
+	std::vector<glm::vec3> vertices0;
+	std::vector<glm::vec2> uvs0;
+	std::vector<glm::vec3> normals0;
+	bool obj0 = loadOBJ("./planet.obj", vertices0, uvs0, normals0);
+	texture[0] = loadBMP_custom("./sunmap.bmp"); //default plane texture
+	glBindVertexArray(vao[0]);
+	//send vao of obj0 (plane) to openGL
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+	glBufferData(GL_ARRAY_BUFFER, vertices0.size() * sizeof(glm::vec3), &vertices0[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, uvbo[0]);
+	glBufferData(GL_ARRAY_BUFFER, uvs0.size() * sizeof(glm::vec2), &uvs0[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, nvbo[0]);
+	glBufferData(GL_ARRAY_BUFFER, normals0.size() * sizeof(glm::vec3), &normals0[0], GL_STATIC_DRAW);
 
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+	glVertexAttribPointer(
+		0, // attribute
+		3, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		0, // stride
+		(void*)0 // array buffer offset
+	);
+	drawSize[0] = (int)vertices0.size();
+	glEnableVertexAttribArray(0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, uvbo[0]);
+	glVertexAttribPointer(
+		1, // attribute
+		2, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		0, // stride
+		(void*)0 // array buffer offset
+	);
+	glEnableVertexAttribArray(1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, nvbo[0]);
+	glVertexAttribPointer(
+		2, // attribute
+		3, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		0, // stride
+		(void*)0 // array buffer offset
+	);
+	glEnableVertexAttribArray(2);
+
+	glBindVertexArray(-1);
+
+	//##################  Finished Plane  #######################
 
 	//##################  First Object : spaceCraft #######################
 	std::vector<glm::vec3> vertices1;
@@ -739,7 +791,7 @@ void paintGL(void)
 	//diffuse
 	GLint diffuseStrengthUniformLocation = glGetUniformLocation(programID, "diffuseStrength");
 	if (diffAdjust <= 0) { diffAdjust = 0.0; }
-	vec3 diffuseStrength(diffAdjust, diffAdjust, diffAdjust);  // RGB light of ambient light
+	vec3 diffuseStrength(diffAdjust, diffAdjust, diffAdjust);  
 	glUniform3fv(diffuseStrengthUniformLocation, 1, &diffuseStrength[0]);
 
 	//pass specular strength to the shader
@@ -772,9 +824,6 @@ void paintGL(void)
 
 
 	//****************PAINT FIRST OBJECT spaceCraft*************
-
-
-
 	GLuint modelUniformLocation = glGetUniformLocation(programID, "model");
 	GLuint viewUniformLocation = glGetUniformLocation(programID, "view");
 	GLuint projectionUniformLocation = glGetUniformLocation(programID, "projection");
@@ -792,7 +841,7 @@ void paintGL(void)
 
 
 	glm::mat4 scaleMatrix1;
-	scaleMatrix1 = glm::scale(glm::mat4(1.0f), glm::vec3(0.008f));  // the last is scallin coefficience
+	scaleMatrix1 = glm::scale(glm::mat4(1.0f), glm::vec3(0.006f));  // the last is scallin coefficience
 
 	glm::mat4 rotateMatrix1;
 	rotateMatrix1 = glm::rotate(glm::mat4(1.0f), glm::radians(-cam.Yaw + 90), vec3(0, 1, 0));
@@ -819,10 +868,50 @@ void paintGL(void)
 	glBindTexture(GL_TEXTURE_2D, -1);
 	////////******************************************************
 
+	//#################     Paint Wonderstar [0]   ###############################
+	GLint sunFlagUniformLocation = glGetUniformLocation(programID, "sunFlag");
+	bool sunFlag = true;
+	glUniform1i(sunFlagUniformLocation, sunFlag);
+
+
+	glBindVertexArray(vao[0]);
+	glm::mat4 modeltranslation0 = glm::mat4(1.0f);
+	modeltranslation0 = glm::translate(glm::mat4(), glm::vec3(-300.0f, -5.0f, -20.0f));
+
+	glm::mat4 scaleMatrix0;
+	scaleMatrix0 = glm::scale(glm::mat4(1.0f), glm::vec3(100.3f));  // the last is scallin coefficience
+
+	model = modeltranslation0 * modeltranslation0*scaleMatrix0;
+
+
+	glm::mat4 mvp0 = projection * view * model;
+
+
+	//load and bind texture
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture[0]);
+	glUniform1i(glGetUniformLocation(programID, "texture6"), 0);
+
+
+	glUniformMatrix4fv(mvpUniformLocation, 1, GL_FALSE, &mvp0[0][0]);
+	glUniformMatrix4fv(modelUniformLocation, 1, GL_FALSE, &model[0][0]);
+	glUniformMatrix4fv(viewUniformLocation, 1, GL_FALSE, &view[0][0]);
+	glUniformMatrix4fv(projectionUniformLocation, 1, GL_FALSE, &projection[0][0]);
+
+	glDrawArrays(GL_TRIANGLES, 0, drawSize[0]);
+	glBindVertexArray(-1);
+	glBindTexture(GL_TEXTURE_2D, -1);
+
+	sunFlagUniformLocation = glGetUniformLocation(programID, "sunFlag");
+	sunFlag = false;
+	glUniform1i(sunFlagUniformLocation, sunFlag);
+
+	//####################finished earth #####################################
+
 	//#################     Paint earth   ###############################
 	GLint normalFlagUniformLocation = glGetUniformLocation(programID, "normalMapping_flag");
 	bool normalFlag = true;
-	glUniform1i(ambientLightUniformLocation, normalFlag);
+	glUniform1i(normalFlagUniformLocation, normalFlag);
 
 
 
@@ -831,7 +920,7 @@ void paintGL(void)
 	modeltranslation2 = glm::translate(glm::mat4(), glm::vec3(0.0f, -5.0f, -128.0f));
 
 	glm::mat4 scaleMatrix2;
-	scaleMatrix2 = glm::scale(glm::mat4(1.0f), glm::vec3(8.3f));  // the last is scallin coefficience
+	scaleMatrix2 = glm::scale(glm::mat4(1.0f), glm::vec3(5.3f));  // the last is scallin coefficience
 
 	model = modeltranslation2 * modeltranslation2*scaleMatrix2;
 
@@ -850,9 +939,6 @@ void paintGL(void)
 	GLuint TextureID_1 = glGetUniformLocation(programID, "myTextureSampler_1");
 	glUniform1i(TextureID_1, 1);
 
-	
-
-
 
 	glUniformMatrix4fv(mvpUniformLocation, 1, GL_FALSE, &mvp2[0][0]);
 	glUniformMatrix4fv(modelUniformLocation, 1, GL_FALSE, &model[0][0]);
@@ -863,8 +949,9 @@ void paintGL(void)
 	glBindVertexArray(-1);
 	glBindTexture(GL_TEXTURE_2D, -1);
 
+	normalFlagUniformLocation = glGetUniformLocation(programID, "normalMapping_flag");
 	normalFlag = false;
-	glUniform1i(ambientLightUniformLocation, normalFlag);
+	glUniform1i(normalFlagUniformLocation, normalFlag);
 
 	//####################finished earth #####################################
 
@@ -880,16 +967,16 @@ void paintGL(void)
 
 	GLuint skb_ModelUniformLocation = glGetUniformLocation(skyboxProgramID, "M");
 	glm::mat4 skb_modelMatrix = glm::mat4(1.0f);
-	glm::mat4 scaleMatrix0;
-	scaleMatrix0 = glm::scale(glm::mat4(1.0f), glm::vec3(2000.0f));  // the last is scalling coefficience
+	glm::mat4 scaleSkybox;
+	scaleSkybox = glm::scale(glm::mat4(1.0f), glm::vec3(2000.0f));  // the last is scalling coefficience
 
 	glm::mat4 modeltranslationNull;
 	modeltranslationNull = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, 0.0f));
 
-	skb_modelMatrix = skb_modelMatrix * scaleMatrix0 * modeltranslationNull ;
+	skb_modelMatrix = skb_modelMatrix * scaleSkybox * modeltranslationNull ;
 
 	//remove any translation component of the view matrix
-	//view = glm::mat4(glm::mat3(view));
+	view = glm::mat4(glm::mat3(view));
 	glUniformMatrix4fv(skb_ModelUniformLocation, 1, GL_FALSE, &skb_modelMatrix[0][0]);
 	glUniformMatrix4fv(glGetUniformLocation(skyboxProgramID, "view"), 1, GL_FALSE, &view[0][0]);
 	glUniformMatrix4fv(glGetUniformLocation(skyboxProgramID, "projection"), 1, GL_FALSE, &projection[0][0]);
