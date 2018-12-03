@@ -10,6 +10,8 @@ Student ID: 1155123308
 Student Name: Wentao Zhu
 *********************************************************/
 
+
+//version Dec.3. 17:04
 #define _CRT_SECURE_NO_DEPRECATE
 #include "C:\Users\cprj2748\Desktop\CG\Rotating-energy-rings-master\Assignment3\Project1\Project1\Dependencies\glew\glew.h"
 #include "C:\Users\cprj2748\Desktop\CG\Rotating-energy-rings-master\Assignment3\Project1\Project1\Dependencies\freeglut\freeglut.h"
@@ -34,7 +36,7 @@ using glm::vec3;
 using glm::mat4;
 
 bool firstMouse = true;
-
+int rotateCounter = 0;
 Camera cam = Camera(glm::vec3(0.0f, 0.0f, 0.0f));
 
 const int numObj = 6;
@@ -44,7 +46,11 @@ GLuint uvbo[numObj];
 GLuint nvbo[numObj];
 GLint texture[numObj];
 GLint textureEarth[2];
+GLint textureWonder[2];
 GLint light[numObj];
+
+const int amount = 400;
+glm::mat4 modelMatrices[amount];
 int drawSize[numObj];
 
 float diffAdjust = 0.1;
@@ -53,7 +59,7 @@ float specAdjust = 0.1;
 
 float specularStrength = 0.5;
 
-int smoothCounter = 0;
+float smoothCounter = 0;
 
 GLfloat deltaTime = 0.0f;
 GLfloat lastFrame = 0.0f;
@@ -289,6 +295,40 @@ void PassiveMouse(int xpos, int ypos)
 
 }
 
+void CreateRand_ModelM() {
+
+	//initialize random seed
+	srand(glutGet(GLUT_ELAPSED_TIME));
+	GLfloat radius = 18.0f;
+	GLfloat offset = 3.4f;
+	GLfloat displacement;
+	for (GLuint i = 0; i < amount; i++) {
+		glm::mat4 model;
+		//1. Translation: Randomly displace along circle with radius 'radius' in range [-offset, offset]
+		GLfloat angle = (GLfloat)i / (GLfloat)amount * 360.0f;
+		//x
+		displacement = (rand() % (GLint)(2 * offset * 200)) / 100.0f - offset;
+		GLfloat x = sin(angle)*radius + displacement;
+		//y
+		displacement = (rand() % (GLint)(2 * offset * 200)) / 100.0f - offset;
+		GLfloat y = displacement * 0.4f + 1;
+		//z
+		displacement = (rand() % (GLint)(2 * offset * 200)) / 100.0f - offset;
+		GLfloat z = cos(angle)*radius + displacement;
+		model = glm::translate(model, glm::vec3(x, y, z));
+		//2.Scale Scale between 0.05 and 0.25f
+		GLfloat scale = (rand() % 10) / 100.0f + 0.05;
+		model = glm::scale(model, glm::vec3(scale));
+		//3.Rotation: add random rotation around a semi randomly picked rotation axis vector
+		GLfloat rotAngle = (rand() % 360);
+		model = glm::rotate(model, rotAngle, glm::vec3(0.4f, 0.6f, 0.8f));
+		//4. Now add to list of matrices
+		modelMatrices[i] = model;
+	}
+
+}
+
+
 bool loadOBJ(const char * path, std::vector<glm::vec3> & out_vertices, std::vector<glm::vec2> & out_uvs, std::vector<glm::vec3> & out_normals) {
 	printf("Loading OBJ file %s...\n", path);
 
@@ -423,10 +463,14 @@ GLuint loadBMP_custom(const char * imagepath) {
 	// Give the image to OpenGL
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_LINEAR);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_LINEAR);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	glGenerateMipmap(GL_TEXTURE_2D);
 
@@ -515,7 +559,7 @@ void sendDataToOpenGL()
 	glGenBuffers(numObj, uvbo);
 	glGenBuffers(numObj, nvbo);
 
-	//##################  Zeroth Object : Wonderplanet #######################
+	//##################  Zeroth Object : Wonderplanet0 #######################
 	std::vector<glm::vec3> vertices0;
 	std::vector<glm::vec2> uvs0;
 	std::vector<glm::vec3> normals0;
@@ -567,7 +611,7 @@ void sendDataToOpenGL()
 
 	glBindVertexArray(-1);
 
-	//##################  Finished Plane  #######################
+	//##################  Finished Planet  #######################
 
 	//##################  First Object : spaceCraft #######################
 	std::vector<glm::vec3> vertices1;
@@ -677,9 +721,114 @@ void sendDataToOpenGL()
 	glBindVertexArray(-1);
 
 	//##################  Finished Plane  #######################
+	//##################  Third Object : Wonderplanet1 #######################
+	std::vector<glm::vec3> vertices3;
+	std::vector<glm::vec2> uvs3;
+	std::vector<glm::vec3> normals3;
+	bool obj3 = loadOBJ("./planet.obj", vertices3, uvs3, normals3);
+	textureWonder[0] = loadBMP_custom("./WonderStarTexture.bmp"); //default plane texture
+	textureWonder[1] = loadBMP_custom("./brickwall_normal.bmp");
+	glBindVertexArray(vao[3]);
+	//send vao of obj0 (plane) to openGL
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
+	glBufferData(GL_ARRAY_BUFFER, vertices3.size() * sizeof(glm::vec3), &vertices3[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, uvbo[3]);
+	glBufferData(GL_ARRAY_BUFFER, uvs3.size() * sizeof(glm::vec2), &uvs3[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, nvbo[3]);
+	glBufferData(GL_ARRAY_BUFFER, normals3.size() * sizeof(glm::vec3), &normals3[0], GL_STATIC_DRAW);
 
 
-	//##################  First Object : Skybox  #######################
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[3]);
+	glVertexAttribPointer(
+		0, // attribute
+		3, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		0, // stride
+		(void*)0 // array buffer offset
+	);
+	drawSize[3] = (int)vertices0.size();
+	glEnableVertexAttribArray(0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, uvbo[3]);
+	glVertexAttribPointer(
+		1, // attribute
+		2, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		0, // stride
+		(void*)0 // array buffer offset
+	);
+	glEnableVertexAttribArray(1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, nvbo[3]);
+	glVertexAttribPointer(
+		2, // attribute
+		3, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		0, // stride
+		(void*)0 // array buffer offset
+	);
+	glEnableVertexAttribArray(2);
+
+	glBindVertexArray(-1);
+
+	//##################  Fourth Object : Rock #######################
+	std::vector<glm::vec3> vertices4;
+	std::vector<glm::vec2> uvs4;
+	std::vector<glm::vec3> normals4;
+	bool obj4 = loadOBJ("./rock.obj", vertices4, uvs4, normals4);
+	texture[4] = loadBMP_custom("./RockTexture.bmp"); 
+
+	glBindVertexArray(vao[4]);
+	//send vao of obj0 (plane) to openGL
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[4]);
+	glBufferData(GL_ARRAY_BUFFER, vertices4.size() * sizeof(glm::vec3), &vertices4[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, uvbo[4]);
+	glBufferData(GL_ARRAY_BUFFER, uvs4.size() * sizeof(glm::vec2), &uvs4[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, nvbo[4]);
+	glBufferData(GL_ARRAY_BUFFER, normals4.size() * sizeof(glm::vec3), &normals4[0], GL_STATIC_DRAW);
+
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[4]);
+	glVertexAttribPointer(
+		0, // attribute
+		3, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		0, // stride
+		(void*)0 // array buffer offset
+	);
+	drawSize[4] = (int)vertices0.size();
+	glEnableVertexAttribArray(0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, uvbo[4]);
+	glVertexAttribPointer(
+		1, // attribute
+		2, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		0, // stride
+		(void*)0 // array buffer offset
+	);
+	glEnableVertexAttribArray(1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, nvbo[4]);
+	glVertexAttribPointer(
+		2, // attribute
+		3, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		0, // stride
+		(void*)0 // array buffer offset
+	);
+	glEnableVertexAttribArray(2);
+
+	glBindVertexArray(-1);
+
+
+	//##################  Last Object : Skybox  #######################
 	GLfloat skyboxVertices[] =
 	{
 		//left
@@ -734,8 +883,6 @@ void sendDataToOpenGL()
 	faces.push_back("./skybox/purplenebula_ft.bmp");
 	faces.push_back("./skybox/purplenebula_bk.bmp");
 
-
-
 	texture[5] = loadCubemap(faces);
 	glBindVertexArray(vao[5]);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[5]);
@@ -753,6 +900,9 @@ void sendDataToOpenGL()
 
 void paintGL(void)
 {
+	if (rotateCounter % 100 == 0) {
+		smoothCounter += 0.001;
+	}
 	glUseProgram(programID);
 	//TODO:
 	//Set lighting information, such as position and color of lighting source
@@ -841,7 +991,7 @@ void paintGL(void)
 
 
 	glm::mat4 scaleMatrix1;
-	scaleMatrix1 = glm::scale(glm::mat4(1.0f), glm::vec3(0.006f));  // the last is scallin coefficience
+	scaleMatrix1 = glm::scale(glm::mat4(1.0f), glm::vec3(0.003f));  // the last is scallin coefficience
 
 	glm::mat4 rotateMatrix1;
 	rotateMatrix1 = glm::rotate(glm::mat4(1.0f), glm::radians(-cam.Yaw + 90), vec3(0, 1, 0));
@@ -920,11 +1070,11 @@ void paintGL(void)
 	modeltranslation2 = glm::translate(glm::mat4(), glm::vec3(0.0f, -5.0f, -128.0f));
 
 	glm::mat4 scaleMatrix2;
-	scaleMatrix2 = glm::scale(glm::mat4(1.0f), glm::vec3(5.3f));  // the last is scallin coefficience
+	scaleMatrix2 = glm::scale(glm::mat4(1.0f), glm::vec3(4.3f));  // the last is scallin coefficience
 
 	model = modeltranslation2 * modeltranslation2*scaleMatrix2;
 
-
+	model = glm::rotate(model, (float)(smoothCounter), glm::vec3(0, 1, 0));
 	glm::mat4 mvp2 = projection * view * model;
 
 
@@ -955,8 +1105,78 @@ void paintGL(void)
 
 	//####################finished earth #####################################
 
+	//#################     Paint Wonderstar [1]   ###############################
+	normalFlagUniformLocation = glGetUniformLocation(programID, "normalMapping_flag");
+	normalFlag = true;
+	glUniform1i(normalFlagUniformLocation, normalFlag);
+
+	glBindVertexArray(vao[3]);
+	glm::mat4 modeltranslation3 = glm::mat4(1.0f);
+	modeltranslation3 = glm::translate(glm::mat4(), glm::vec3(-20.0f, -5.0f, -60.0f));
+
+	glm::mat4 scaleMatrix3;
+	scaleMatrix3 = glm::scale(glm::mat4(1.0f), glm::vec3(1.8f));  // the last is scallin coefficience
+
+	model = modeltranslation3 * modeltranslation3 * scaleMatrix3;
+	model = glm::rotate(model, (float)(smoothCounter), glm::vec3(0, 1, 0));
+
+	glm::mat4 mvp3 = projection * view * model;
 
 
+	//load and bind texture
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, textureWonder[0]);
+	GLuint TextureID_2 = glGetUniformLocation(programID, "myTextureSampler_0");
+	glUniform1i(TextureID_2, 0);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, textureWonder[1]);
+	GLuint TextureID_3 = glGetUniformLocation(programID, "myTextureSampler_1");
+	glUniform1i(TextureID_3, 1);
+
+
+	glUniformMatrix4fv(mvpUniformLocation, 1, GL_FALSE, &mvp3[0][0]);
+	glUniformMatrix4fv(modelUniformLocation, 1, GL_FALSE, &model[0][0]);
+	glUniformMatrix4fv(viewUniformLocation, 1, GL_FALSE, &view[0][0]);
+	glUniformMatrix4fv(projectionUniformLocation, 1, GL_FALSE, &projection[0][0]);
+
+	glDrawArrays(GL_TRIANGLES, 0, drawSize[3]);
+	glBindVertexArray(-1);
+	glBindTexture(GL_TEXTURE_2D, -1);
+
+	normalFlagUniformLocation = glGetUniformLocation(programID, "normalMapping_flag");
+	normalFlag = false;
+	glUniform1i(normalFlagUniformLocation, normalFlag);
+
+	//#######################   Paint Rocks ############################
+	glm::mat4 rockOrbitIni = glm::translate(glm::mat4(), glm::vec3(-43.0f, -9.0f, -120.0f));
+	glm::mat4 rockOrbit_M = glm::rotate(rockOrbitIni, (float)(smoothCounter), glm::vec3(0, 1, 0));
+	
+	glm::mat4 scaleMatrix4;
+	scaleMatrix4 = glm::scale(glm::mat4(1.0f), glm::vec3(1.8f));  // the last is scallin coefficience
+
+	//load and bind texture
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture[4]);
+	glUniform1i(glGetUniformLocation(programID, "texture0"), 0);
+	
+	glm::mat4 rockModelMat_temp;
+	for (GLuint i = 0; i < amount; i++) {
+		rockModelMat_temp = modelMatrices[i];
+		rockModelMat_temp = rockOrbit_M * rockModelMat_temp * scaleMatrix4;
+		glm::mat4 mvp4 = projection * view * rockModelMat_temp;
+
+		glUniformMatrix4fv(mvpUniformLocation, 1, GL_FALSE, &mvp4[0][0]);
+		glUniformMatrix4fv(modelUniformLocation, 1, GL_FALSE, &model[0][0]);
+		glUniformMatrix4fv(viewUniformLocation, 1, GL_FALSE, &view[0][0]);
+		glUniformMatrix4fv(projectionUniformLocation, 1, GL_FALSE, &projection[0][0]);
+		//Draw
+		glBindVertexArray(vao[4]);
+		glDrawArrays(GL_TRIANGLES, 0, drawSize[4]);
+
+	}
+	glBindVertexArray(-1);
+	glBindTexture(GL_TEXTURE_2D, -1);
 
 	//#################     SKYBOX   ###############################
 	//glDisable(GL_DEPTH_TEST);
@@ -1028,7 +1248,7 @@ int main(int argc, char *argv[])
 	with different events, e.g. window sizing, mouse click or
 	keyboard stroke */
 	initializedGL();
-
+	CreateRand_ModelM();
 	glutDisplayFunc(paintGL);
 
 	glutKeyboardFunc(keyboard);
