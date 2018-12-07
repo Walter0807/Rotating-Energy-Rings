@@ -18,11 +18,14 @@ Student Name: Wentao Zhu
 #include "C:\Users\cprj2748\Desktop\CG\Rotating-energy-rings-master\Assignment3\Project1\Project1\Dependencies\glm\glm.hpp"
 #include "C:\Users\cprj2748\Desktop\CG\Rotating-energy-rings-master\Assignment3\Project1\Project1\Dependencies\glm\gtc\matrix_transform.hpp"
 #include "C:\Users\cprj2748\Desktop\CG\Rotating-energy-rings-master\Assignment3\Project1\Project1\Dependencies\glm\gtc\type_ptr.hpp"
+#include "C:\Users\cprj2748\Desktop\CG\Rotating-energy-rings-master\Assignment3\Project1\Project1\Dependencies\glm\gtx\norm.hpp"
+
 
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include "camera.h"
+
 
 #include <string>
 
@@ -39,7 +42,7 @@ bool firstMouse = true;
 int rotateCounter = 0;
 Camera cam = Camera(glm::vec3(0.0f, 0.0f, 0.0f));
 
-const int numObj = 6;
+const int numObj = 7;
 GLuint vao[numObj];
 GLuint vbo[numObj];
 GLuint uvbo[numObj];
@@ -48,7 +51,7 @@ GLint texture[numObj];
 GLint textureEarth[2];
 GLint textureWonder[2];
 GLint light[numObj];
-
+GLint greenTexture;
 const int amount = 400;
 glm::mat4 modelMatrices[amount];
 int drawSize[numObj];
@@ -80,11 +83,16 @@ int lastX = 0;
 int lastY = 0;
 int xpos = 0;
 int ypos = 0;
-
+bool inRing0 = false;
+bool inRing1 = false;
+bool inRing2 = false;
 
 GLint programID;
 GLint skyboxProgramID;
 // Could define the Vao&Vbo and interaction parameter here
+
+
+
 
 
 //a series utilities for setting shader parameters 
@@ -549,6 +557,7 @@ unsigned char* loadBMP_data(const GLchar* imagepath, int* width, int* height) {
 	return data;
 }
 
+
 void sendDataToOpenGL()
 {
 	//TODO:
@@ -828,6 +837,64 @@ void sendDataToOpenGL()
 	glBindVertexArray(-1);
 
 
+	//##################  6th : Ring #######################
+	std::vector<glm::vec3> vertices6;
+	std::vector<glm::vec2> uvs6;
+	std::vector<glm::vec3> normals6;
+	bool obj6 = loadOBJ("./Ring.obj", vertices6, uvs6, normals6);
+	texture[6] = loadBMP_custom("./ringTexture.bmp"); //default plane texture
+	greenTexture = loadBMP_custom("./green.bmp");
+	glBindVertexArray(vao[6]);
+	//send vao of obj0 (plane) to openGL
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[6]);
+	glBufferData(GL_ARRAY_BUFFER, vertices6.size() * sizeof(glm::vec3), &vertices6[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, uvbo[6]);
+	glBufferData(GL_ARRAY_BUFFER, uvs6.size() * sizeof(glm::vec2), &uvs6[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, nvbo[6]);
+	glBufferData(GL_ARRAY_BUFFER, normals6.size() * sizeof(glm::vec3), &normals6[0], GL_STATIC_DRAW);
+
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[6]);
+	glVertexAttribPointer(
+		0, // attribute
+		3, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		0, // stride
+		(void*)0 // array buffer offset
+	);
+	drawSize[6] = (int)vertices6.size();
+	glEnableVertexAttribArray(0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, uvbo[6]);
+	glVertexAttribPointer(
+		1, // attribute
+		2, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		0, // stride
+		(void*)0 // array buffer offset
+	);
+	glEnableVertexAttribArray(1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, nvbo[6]);
+	glVertexAttribPointer(
+		2, // attribute
+		3, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		0, // stride
+		(void*)0 // array buffer offset
+	);
+	glEnableVertexAttribArray(2);
+
+	glBindVertexArray(-1);
+
+	//##################  Finished Ring  #######################
+
+
+
+
 	//##################  Last Object : Skybox  #######################
 	GLfloat skyboxVertices[] =
 	{
@@ -898,8 +965,66 @@ void sendDataToOpenGL()
 
 }
 
+
+void paintRing(bool *inRing, glm::vec3 position, glm::mat4 model, glm::mat4 view, glm::mat4 projection, GLuint modelUniformLocation, GLuint viewUniformLocation, GLuint projectionUniformLocation, GLuint mvpUniformLocation) {
+	//#################     Paint Ring   ###############################
+	glBindVertexArray(vao[6]);
+	GLfloat half = 3.1415926 / 2;
+
+	glm::mat4 rotateHalf = glm::rotate(glm::mat4(1.0f), -half, glm::vec3(1, 0, 0));
+	glm::mat4 seflRotate = glm::rotate(glm::mat4(1.0f), (float)(1.5*smoothCounter), glm::vec3(0, 1, 0));
+	glm::mat4 modeltranslation6 = glm::mat4();
+	modeltranslation6 = glm::translate(glm::mat4(), position);
+
+	glm::mat4 scaleMatrix6;
+	scaleMatrix6 = glm::scale(glm::mat4(1.0f), glm::vec3(0.06f));  // the last is scallin coefficience
+
+	model = modeltranslation6  * seflRotate * rotateHalf * scaleMatrix6;
+
+	//model = glm::rotate(model, (float)(smoothCounter), glm::vec3(1, 0, 0));
+	glm::mat4 mvp6 = projection * view * model;
+
+	glm::vec3 temp = cam.Position - position + glm::vec3(0.0f, -5.0f, 0.0f) + glm::vec3(10 * cam.Front.x, 10 * cam.Front.y, 10 * cam.Front.z);
+
+
+	if (glm::length2(temp) > 50) {
+		*inRing = false;
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, texture[6]);
+		glUniform1i(glGetUniformLocation(programID, "texture0"), 0);
+		cout << "Colorful!" << endl;
+	}
+	else {
+		*inRing = true;
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, greenTexture);
+		glUniform1i(glGetUniformLocation(programID, "texture0"), 0);
+
+	}
+	
+	glUniformMatrix4fv(mvpUniformLocation, 1, GL_FALSE, &mvp6[0][0]);
+	glUniformMatrix4fv(modelUniformLocation, 1, GL_FALSE, &model[0][0]);
+	glUniformMatrix4fv(viewUniformLocation, 1, GL_FALSE, &view[0][0]);
+	glUniformMatrix4fv(projectionUniformLocation, 1, GL_FALSE, &projection[0][0]);
+
+	glDrawArrays(GL_TRIANGLES, 0, drawSize[6]);
+	glBindVertexArray(-1);
+	glBindTexture(GL_TEXTURE_2D, -1);
+
+
+	//####################finished earth #####################################
+}
+
+
 void paintGL(void)
 {
+	GLuint modelUniformLocation = glGetUniformLocation(programID, "model");
+	GLuint viewUniformLocation = glGetUniformLocation(programID, "view");
+	GLuint projectionUniformLocation = glGetUniformLocation(programID, "projection");
+	GLuint mvpUniformLocation = glGetUniformLocation(programID, "MVP");
+
+
+
 	if (rotateCounter % 100 == 0) {
 		smoothCounter += 0.001;
 	}
@@ -974,12 +1099,6 @@ void paintGL(void)
 
 
 	//****************PAINT FIRST OBJECT spaceCraft*************
-	GLuint modelUniformLocation = glGetUniformLocation(programID, "model");
-	GLuint viewUniformLocation = glGetUniformLocation(programID, "view");
-	GLuint projectionUniformLocation = glGetUniformLocation(programID, "projection");
-	GLuint mvpUniformLocation = glGetUniformLocation(programID, "MVP");
-
-
 
 	glBindVertexArray(vao[1]);
 
@@ -1003,9 +1122,20 @@ void paintGL(void)
 
 
 	//load and bind texture
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, texture[1]);
-	glUniform1i(glGetUniformLocation(programID, "texture0"), 0);
+	if (inRing0 | inRing1 | inRing2) {
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, greenTexture);
+		glUniform1i(glGetUniformLocation(programID, "texture0"), 0);
+		cout << "GREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEN" << endl;
+	}
+	else if(!inRing0 & !inRing1 & !inRing2) {
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, texture[1]);
+		glUniform1i(glGetUniformLocation(programID, "texture0"), 0);
+		cout << "PIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIINK" << endl;
+	}
+
+
 
 
 	glUniformMatrix4fv(mvpUniformLocation, 1, GL_FALSE, &mvp1[0][0]);
@@ -1072,7 +1202,7 @@ void paintGL(void)
 	glm::mat4 scaleMatrix2;
 	scaleMatrix2 = glm::scale(glm::mat4(1.0f), glm::vec3(4.3f));  // the last is scallin coefficience
 
-	model = modeltranslation2 * modeltranslation2*scaleMatrix2;
+	model = modeltranslation2 * modeltranslation2 * scaleMatrix2;
 
 	model = glm::rotate(model, (float)(smoothCounter), glm::vec3(0, 1, 0));
 	glm::mat4 mvp2 = projection * view * model;
@@ -1149,7 +1279,7 @@ void paintGL(void)
 	glUniform1i(normalFlagUniformLocation, normalFlag);
 
 	//#######################   Paint Rocks ############################
-	glm::mat4 rockOrbitIni = glm::translate(glm::mat4(), glm::vec3(-43.0f, -9.0f, -120.0f));
+	glm::mat4 rockOrbitIni = glm::translate(glm::mat4(), glm::vec3(-41.0f, -9.5f, -120.0f));
 	glm::mat4 rockOrbit_M = glm::rotate(rockOrbitIni, (float)(smoothCounter), glm::vec3(0, 1, 0));
 	
 	glm::mat4 scaleMatrix4;
@@ -1173,12 +1303,23 @@ void paintGL(void)
 		//Draw
 		glBindVertexArray(vao[4]);
 		glDrawArrays(GL_TRIANGLES, 0, drawSize[4]);
-
+		//glDrawElementsInstanced(GL_TRIANGLES, rock.meshes[i].indices.size(), GL_UNSIGNED_INT, 0, amount);
 	}
 	glBindVertexArray(-1);
 	glBindTexture(GL_TEXTURE_2D, -1);
 
-	//#################     SKYBOX   ###############################
+
+	//################     paint rings   ####################
+	paintRing(&inRing0, glm::vec3(10.0f, -4.0f, -55.0f),model, view, projection, modelUniformLocation, viewUniformLocation, projectionUniformLocation, mvpUniformLocation);
+	paintRing(&inRing1, glm::vec3(15.0f, -4.0f, -85.0f), model, view, projection, modelUniformLocation, viewUniformLocation, projectionUniformLocation, mvpUniformLocation);
+	paintRing(&inRing2, glm::vec3(20.0f, -4.0f, -125.0f), model, view, projection, modelUniformLocation, viewUniformLocation, projectionUniformLocation, mvpUniformLocation);
+	//#######################################################
+
+
+
+
+
+	//#################     Paint SKYBOX   ###############################
 	//glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
 
