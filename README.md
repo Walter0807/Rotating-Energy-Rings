@@ -2,9 +2,7 @@
 
 *CSCI 3260 Course Project*
 
-> 1155123906 Zuowen Wang
->
-> 1155123308 Wentao Zhu
+
 
 
 
