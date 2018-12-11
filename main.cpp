@@ -11,7 +11,8 @@ Student Name: Wentao Zhu
 *********************************************************/
 
 
-//version Dec.3. 17:04
+//version Final
+
 #define _CRT_SECURE_NO_DEPRECATE
 #include "C:\Users\cprj2748\Desktop\CG\Rotating-energy-rings-master\Assignment3\Project1\Project1\Dependencies\glew\glew.h"
 #include "C:\Users\cprj2748\Desktop\CG\Rotating-energy-rings-master\Assignment3\Project1\Project1\Dependencies\freeglut\freeglut.h"
