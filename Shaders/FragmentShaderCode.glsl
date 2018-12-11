@@ -1,99 +1,102 @@
-#version 330 core
+#version 430 //GLSL version your computer supports
 
-struct SpotLight {
-    vec3 position;
-    vec3 direction;
-    float cutOff;
-    float outerCutOff;
-    
-    float constant;
-    float linear;
-    float quadratic;
-    
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-};
+out vec4 daColor;
 
-struct DirLight {
-    vec3 direction;
-    
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-};
+in vec2 UV;
+in vec3 normalWorld;
+in vec3 vertexPositionWorld;
 
-struct Material {
-    sampler2D diffuse;
-    sampler2D specular;
-    float shininess;
-};
+uniform vec3 ambientLight;
+uniform vec3 sunAmbient;
+uniform vec3 lightPositionWorld;
+uniform vec3 lightPositionWorld2;
+uniform vec3 eyePositionWorld;
 
-out vec4 color;
-in vec2 TexCoords;
-in vec3 Normal;
-in vec3 FragPos;
-uniform Material material;
+uniform sampler2D texture0;
+uniform sampler2D texture6;
+uniform sampler2D myTextureSampler_0;
+uniform sampler2D myTextureSampler_1;
 
-uniform sampler2D texture_diffuse1;
-//uniform vec3 lightColor;
-//uniform vec3 lightDir;
-uniform vec3 viewPos;
+uniform bool normalMapping_flag;
+uniform bool sunFlag;
+uniform bool redSunFlag;
 
-//uniform float ambientStrength;
-//uniform float diffuseStrength;
-//uniform float specularStrength;
+uniform vec3 diffuseStrength;
+uniform vec3 diffuseStrength2;
+uniform vec3 specularStrength;
+uniform vec3 specularStrength2;
 
-uniform DirLight dirLight;
-uniform SpotLight spotLight;
-
-vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir)
-{
-    vec3 lightDir = normalize(-light.direction);
-    // 计算漫反射强度
-    float diff = max(dot(normal, lightDir), 0.0);
-    // 计算镜面反射强度
-    vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
-    // 合并各个光照分量
-    vec3 ambient  = light.ambient  * vec3(texture(material.diffuse, TexCoords));
-    vec3 diffuse  = light.diffuse  * diff * vec3(texture(material.diffuse, TexCoords));
-    vec3 specular = light.specular * spec * vec3(texture(material.specular, TexCoords));
-    return (ambient + diffuse + specular);
-}
-
-// 计算聚光在确定位置的光照颜色
-vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
-{
-    vec3 lightDir = normalize(light.position - fragPos);
-    // 计算漫反射强度
-    float diff = max(dot(normal, lightDir), 0.0);
-    // 计算镜面反射
-    vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
-    // 计算衰减
-    float distance = length(light.position - fragPos);
-    float attenuation = 1.0f / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
-    //点光强度
-    float theta = dot(lightDir, normalize(-light.direction));
-    float epsilon = light.cutOff - light.outerCutOff;
-    float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
-    // 将各个分量合并
-    vec3 ambient = light.ambient * vec3(texture(material.diffuse, TexCoords));
-    vec3 diffuse = light.diffuse * diff * vec3(texture(material.diffuse, TexCoords));
-    vec3 specular = light.specular * spec * vec3(texture(material.specular, TexCoords));
-    ambient *= attenuation * intensity;
-    diffuse *= attenuation * intensity;
-    specular *= attenuation * intensity;
-    return (ambient + diffuse + specular);
-}
 
 void main()
 {
-    
-    vec3 norm = normalize(Normal);
-    vec3 viewDir = normalize(viewPos - FragPos);
-    vec3 result = CalcDirLight(dirLight, norm, viewDir) + CalcSpotLight(spotLight, norm, FragPos, viewDir);
-    color = vec4(result, 1.0f);
+		vec3 normal = normalize(normalWorld);
+		
+		if(normalMapping_flag){
+			normal = texture(myTextureSampler_1, UV).rgb;
+			normal = normalize(normal*2 - 1.0);
+		}
 
+		float constant = 1.0f;
+		float linear = 0.00035f;
+		float quadratic = 0.00044f;
+
+
+		float dis = length(lightPositionWorld - vertexPositionWorld);
+		dis = dis/40;
+		float dis2 = length(lightPositionWorld2 - vertexPositionWorld);
+		dis2 = dis2/40;
+		float attenuation = 1.0f/(1.0f+linear*dis+quadratic*pow(dis,2));
+		float attenuation2 = 1.0f/(1.0f+linear*dis2+quadratic*pow(dis2,2));
+
+
+		vec3 lightVectorWorld = normalize(lightPositionWorld - vertexPositionWorld);
+		vec3 lightVectorWorld2 = normalize(lightPositionWorld2 - vertexPositionWorld);
+		float brightness2 = max(dot(lightVectorWorld2, normalize(normalWorld)), 0.0);
+		float brightness = max(dot(lightVectorWorld, normalize(normalWorld)), 0.0);
+		vec3 diffuseLight = vec3(brightness, brightness, brightness);
+		vec3 diffuseLight2 = vec3(brightness2, brightness2, brightness2);
+		diffuseLight = clamp(vec3(attenuation, attenuation, attenuation) * diffuseStrength * diffuseLight, 0, 1);
+		diffuseLight2 = clamp(vec3(attenuation2, attenuation2, attenuation2) * diffuseStrength2 * diffuseLight2, 0, 1);
+		//specular light
+		vec3 reflectedLightVectorWorld = reflect(-lightVectorWorld, normal);
+		vec3 reflectedLightVectorWorld2 = reflect(-lightVectorWorld, normal);
+		vec3 eyeVectorWorld = normalize(eyePositionWorld - vertexPositionWorld);
+		float s = clamp(dot(reflectedLightVectorWorld, eyeVectorWorld), 0, 1);
+		float s2 = clamp(dot(reflectedLightVectorWorld2, eyeVectorWorld), 0, 1);
+		s = pow(s, 100);
+		s2 = pow(s2, 100);
+		vec3 specularLight = vec3(s, s, s);
+		vec3 specularLight2 = vec3(s2, s2, s2);
+		specularLight = vec3(attenuation, attenuation, attenuation) * specularStrength * specularLight;
+		specularLight2 = vec3(attenuation2, attenuation2, attenuation2) * specularStrength * specularLight2;
+		if(!sunFlag){
+			if(normalMapping_flag){
+				vec3 temp00 = texture(myTextureSampler_0, UV).rgb;
+
+				if(redSunFlag){
+					daColor = vec4(vec3(temp00.x*0.8, temp00.y*0.45, temp00.z*0.56)*(ambientLight + diffuseLight2 + specularLight2), 1.0) 
+					+ 0.3*vec4((temp00)*(ambientLight + diffuseLight + specularLight), 1.0);
+				}else{
+					daColor = vec4((temp00)*(ambientLight + diffuseLight + specularLight), 1.0);
+				}
+				
+			}else{
+				vec3 temp00 = texture(texture0, UV).rgb;
+				if(redSunFlag){
+					daColor = vec4(vec3(temp00.x*0.8, temp00.y*0.45, temp00.z*0.56)*(ambientLight + diffuseLight2 + specularLight2), 1.0) + 0.3*vec4((temp00)*(ambientLight + diffuseLight + specularLight), 1.0);
+				}else{
+					daColor = vec4((temp00)*(ambientLight + diffuseLight + specularLight), 1.0);
+				}
+			
+			}
+		}else{
+			if(redSunFlag){
+				daColor = vec4((texture(texture6, UV).rgb)*(ambientLight), 1.0) + 0.3*vec4((texture(texture6, UV).rgb)*(ambientLight), 1.0);			
+			}else{
+				daColor = vec4((texture(texture6, UV).rgb)*(ambientLight), 1.0);			
+			}
+
+		}
 }
+
+
