@@ -34,7 +34,7 @@ Asteroid ring cloud consists of floating rocks, which moves around the Wonder st
 
 
 
-![](Screenshots/wonder.png)
+![](Screenshots/wonder.PNG)
 
 A close look at the Wonder star.
 
