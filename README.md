@@ -78,7 +78,7 @@ When the spacecraft is passing through an energy ring, a green testure is applie
 
 Control the self-rotation of the spacecraft.
 
-**keyboard:** 
+**Keyboard:** 
 
 Arrow keys control the translations of the spacecraft. Some more shortcuts are implemented as well.
 
